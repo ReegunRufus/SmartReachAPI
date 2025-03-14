@@ -1,13 +1,32 @@
 import json
 import requests
+import boto3
+from botocore.exceptions import ClientError
 
-SMARTREACH_API_KEY = 'uk__OAKNwpYC2Me6nLg2vaqM27deEWqc5xzf'
-TEAM_ID = 'team_2VnI7aTHSO2SCXk16ithmEsshL1'
-CAMPAIGN_ID = 'cmp_aa_2uFb7JcFwjxVEby6qwpc83zXz8t'
+def instagram_get_secret():
+    """Fetch secrets from AWS Secrets Manager"""
+    secret_name = "ConfluencrInstagram"
+    region_name = "us-east-1"
+
+    session = boto3.session.Session()
+    client = session.client(service_name='secretsmanager', region_name=region_name)
+
+    try:
+        get_secret_value_response = client.get_secret_value(SecretId=secret_name)
+    except ClientError as e:
+        raise e
+
+    secret = get_secret_value_response['SecretString']
+    return json.loads(secret)
+
+# Fetch secrets from AWS Secrets Manager
+secrets = instagram_get_secret()
+SMARTREACH_API_KEY = secrets.get("SMARTREACH API KEY")
+TEAM_ID = secrets.get("TEAM ID")
+CAMPAIGN_ID = secrets.get("CAMPAIGN ID")
 
 def lambda_handler(event, context):
     """AWS Lambda function to add a prospect and assign it to a campaign in SmartReach.io if profile is completed."""
-
     try:
         # Extract records from payload
         record = event.get("record", {})
